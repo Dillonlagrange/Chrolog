@@ -1,0 +1,526 @@
+ body {
+  font-family: "Red Hat Display", sans-serif;
+  background: linear-gradient( 135deg, #ffffff, #ddd, #ffffff, #ddd );
+    min-height: 100vh;
+  padding: 30px;
+}
+
+h1 {
+    font-weight: normal;
+}
+
+h2 {
+    font-family: "Red Hat Display", sans-serif;
+    font-weight: bold;
+    font-size: 24px;
+    color: #444; 
+}
+
+h3 {
+    font-weight: normal;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+}
+
+body {
+    display: flex;
+    flex-direction: column; /* Stacks the header and main content vertically */
+    min-height: 100vh; /* Ensures the body always takes at least the full viewport height */
+    font-family: 'Red Hat Display', sans-serif; /* Using your specified font from HTML */
+    background-color: #f0f2f5; /* Light background for the whole page */
+    color: #333; /* Default text color */
+}
+
+/* --- 2. Styles for the New App Header --- */
+.app-header {
+    width: 100%; /* Make header span full width */
+    padding: 20px; /* Top/bottom 15px, left/right 30px */
+    display: flex; /* Use Flexbox for internal layout (logo left, controls right) */
+    align-items: center; /* Vertically center items (logo and buttons) */
+    justify-content: space-between; /* Pushes logo to left, controls to right */
+    box-sizing: border-box; /* Ensures padding is included in the width */
+}
+
+.app-logo {
+    height: 40px; /* <-- This controls the size of your logo. Adjust as needed! */
+    width: auto; /* Maintain aspect ratio */
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 5px 10px rgba(20, 20, 20, 0.171);
+}
+
+.header-controls {
+    display: flex; /* If you add more buttons later, they'll be flexed */
+    gap: 15px; /* Space between buttons (e.g., settings and other future buttons) */
+    align-items: center; /* Vertically align items if they have different heights */
+}
+
+.settings-btn {
+    background: none; /* Remove default button background */
+    border: none; /* Remove default button border */
+    cursor: pointer;
+    font-size: 24px; /* Adjust icon size for the settings button */
+    color: #555; /* Icon color */
+    padding: 5px; /* Some padding around the icon to make it easier to click */
+    border-radius: 10px; /* Slightly rounded corners for hover effect */
+    transition: background-color 0.3s ease, color 0.3s ease; /* Smooth hover transition */
+    display: flex; /* Use flex to perfectly center the icon */
+    align-items: center;
+    justify-content: center;
+}
+
+.settings-btn:hover {
+    background-color: rgba(0, 0, 0, 0.08); /* Light hover background */
+    color: #000; /* Darker icon color on hover */
+}
+
+.main-content-wrapper {
+    display: flex; /* Since your .container has left/right columns, this wrapper also needs flex */
+    flex: 1; /* Allows this wrapper to take up all remaining vertical space */
+    padding: 0 20px 20px; /* Padding around your entire main content area (left/right/bottom) */
+    box-sizing: border-box;
+}
+
+/* Adjust your existing .container to fill the wrapper */
+.container {
+    display: flex; /* Keep this as flex to layout your left/right columns */
+    flex: 1; /* Make the container fill the main-content-wrapper */
+    /* If you had specific margins/padding on .container that are now causing issues, review them */
+}
+
+.container {
+    display: flex;
+    align-items: flex-start;
+    width: 100%;
+}
+
+.left-column {
+    flex: 1.125;
+    display: flex;
+    flex-direction: column;
+    align-self: flex-start;
+    margin-right: 20px;
+    gap: 20px;
+}
+
+.right-column {
+    flex: 1;
+    min-height: fit-content;
+}
+
+/* Right side (History) */
+
+.right-column {
+    flex: 1;
+}
+
+.frame {
+    flex: 1;
+    background-color: rgba(255, 255, 255, 0.36);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 20px;
+    border-radius: 40px;
+    border: 1px solid #f8f8f8;
+    box-shadow: 0 2px 5px rgba(20, 20, 20, 0.1);
+}
+
+/* History Window */
+
+#history-container,
+#projectsContainer,
+#projects-list-container {
+    min-height: 150px;
+}
+
+.history-header {
+    background-color: #f8f8f8;
+    border-radius: 20px;
+    box-shadow: 0 5px 10px rgba(20, 20, 20, 0.1);
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 1px solid #ffffff;
+    font-size: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    position: relative;
+    min-height: 30px;
+    transition: background-color 0.4s ease;
+}
+
+.arrow-btn {
+    width: 30px;
+    height: 30px;
+    background-color: #f8f8f8;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #f8f8f8;
+    cursor: pointer;
+    transition: background-color 0.4s ease, transform 0.4s ease;
+}
+
+.arrow-btn:hover {
+    background-color: #eee;
+}
+
+.material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    transition: transform 0.3s ease;
+}
+
+.history-header.expanded .material-symbols-outlined {
+    transform: rotate(90deg);
+}
+
+.history-header.expanded {
+    max-height: 300px;
+}
+
+.history-header .date {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+}
+
+.history-content p {
+    text-align: center;
+}
+
+.history-content {
+    box-sizing: border-box;
+    width: 100%;
+    max-height: 0px;
+    overflow: hidden;
+    overflow-y: auto;
+    scrollbar-width: none;
+    transition: max-height 0.4s ease-in-out;
+}
+
+.history-header.expanded .history-content {
+    max-height: 500px;
+}
+
+.project-name::before {
+    content: "Project: ";
+    font-weight: bold;
+}
+
+.start-time::before {
+    content: "Start: ";
+    font-weight: bold;
+}
+
+.end-time::before {
+    content: "End: ";
+    font-weight: bold;
+}
+
+.history-entry {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    margin-top: 5px;
+    gap: 10px;
+    flex-wrap: nowrap;
+}
+
+.project-name {
+    flex-shrink: 1;
+    min-width: 120px;
+    text-align: left;
+    flex-wrap: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.start-time {
+    margin-left: auto;
+    padding-left: 20px;
+    min-width: 130px;
+    text-align: left;
+}
+
+.end-time {
+
+    min-width: 110px;
+    text-align: left;
+}
+
+.daily-total-display {
+    margin-left: auto; /* Pushes it to the right within the flex header */
+    padding: 10px; /* Some padding */
+    font-weight: bold;
+    white-space: nowrap; /* Prevent wrapping */
+    margin-bottom: 10px; /* Space between total and first history entry */
+    text-align: right; /* Often looks good right-aligned */
+}
+
+/* Today Window */
+
+#timer-column-headers {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    color: #888;
+    font-size: 0.85em;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#timer-column-headers .project-name-label {
+    width: 250px;
+    text-align: center;
+}
+
+#timer-column-headers .toggle-button-label {
+    width: 90px;
+}
+
+#timer-column-headers .start-time-label,
+#timer-column-headers .end-time-label {
+    width: 100px;
+    text-align: center;
+}
+
+#timer-column-headers .elapsed-time-label {
+    width: 110px;
+    text-align: center;
+}
+
+.project-row {
+  display: flex;
+  align-items: center;
+  background-color: #f8f8f8;
+  border-radius: 20px;
+  box-shadow: 0 5px 10px rgba(20, 20, 20, 0.1);
+  margin-bottom: 10px;
+  border: 1px solid #ffffff;
+  gap: 10px;
+  padding: 10px;
+}
+
+.project-row.active {
+    background-color: #f8f8f8;
+    box-shadow: 0 5px 10px #9debb7c7;
+    transition: background-color 0.4s ease;
+}
+
+.project-row input[type="text"] {
+  font-family: "Red Hat Display", sans-serif;
+  font-weight: normal;
+  font-size: 16px;
+  padding: 5px 10px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  width: 250px; /* Keep the specific width for project name input */
+}
+
+.project-row input[type="text"]:focus {
+    border: 1px solid #555;
+    outline: none;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+.project-row .time-display-output {
+  font-family: "Red Hat Display", sans-serif;
+  font-weight: normal;
+  font-size: 18px; /* Consistent font size with inputs */
+  color: #444; /* Standard text color */
+  padding: 5px 0; /* Minimal vertical padding, no horizontal padding */
+  text-align: center; /* Center the time text */
+  min-width: 100px; /* Give it a consistent width so things don't shift */
+  white-space: nowrap; /* Prevent time from wrapping */
+}
+
+.timer-display {
+  font-size: 18px;
+  width: 80px;
+  text-align: center;
+  margin: 0 10px;
+}
+
+.start-button {
+    font-family: "Red Hat Display", sans-serif;
+    padding: 5px;
+    width: 70px;
+    background-color: #444;
+    color: white;
+    font-size: 16px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.4s ease;
+}
+
+.start-button:hover {
+    background-color: rgba(85, 85, 85, 0.85);
+}
+
+.stop-button {
+    font-family: "Red Hat Display", sans-serif;
+    padding: 5px;
+    width: 70px;
+    background-color: rgb(44, 146, 99);
+    color: white;
+    font-size: 16px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.4s ease;
+}
+
+.stop-button:hover {
+  background-color: #2c926293;
+}
+
+.reset-timer-btn {
+    font-family: "Red Hat Display", sans-serif;
+    padding: 8px 16px;
+    background-color: transparent;
+    color: #444;
+    font-size: 14px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.4s ease;
+    margin-left: auto;
+}
+
+.reset-timer-btn:hover {
+    background-color: #eee;
+}
+
+.delete-timer-btn {
+    background-color: transparent;
+    border: none; 
+    color: #444; 
+    font-size: 16px; 
+    cursor: pointer; 
+    width: 30px; 
+    height: 30px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.4s ease;
+}
+
+.delete-timer-btn:hover {
+    background-color: #eee;
+}
+
+.today-controls {
+    display: flex;
+    justify-content: space-between; /* Pushes the button to one end and the display to the other */
+    align-items: center; /* Vertically centers the items */
+    margin-top: 15px; /* Space above this section */
+    padding-top: 15px; /* Padding for the line above */
+}
+
+#totalTimeTodayDisplay {
+    font-size: 1.1em;
+    background-color: transparent;
+    padding: 8px 12px;
+    white-space: nowrap; /* Prevent the time from wrapping to multiple lines */
+    min-width: 90px; /* Ensures it has a minimum width, adjust if needed */
+    text-align: center; /* Center the text within its box */
+}
+
+#addTimerBtn {
+  font-family: "Red Hat Display", sans-serif;
+  padding: 10px 20px;
+  background-color: #444;
+  color: white;
+  font-size: 16px;
+  border: none;
+  border-radius: 20px;
+  margin-top: 10px;
+  cursor: pointer;
+  transition: background-color 0.4s ease;
+}
+
+#addTimerBtn:hover {
+  background-color: rgba(85, 85, 85, 0.85);
+}
+
+.timer-display {
+  font-size: 18px;
+  width: 80px;
+  text-align: center;
+  margin: 0 10px;
+}
+
+/* Projects Window */
+
+#addProjectNameBtn {
+  font-family: "Red Hat Display", sans-serif;
+  padding: 10px 20px;
+  background-color: #444;
+  color: white;
+  font-size: 16px;
+  border: none;
+  border-radius: 20px;
+  margin-top: 10px;
+  cursor: pointer;
+  transition: background-color 0.4s ease;
+}
+
+#addProjectNameBtn:hover {
+  background-color: rgba(85, 85, 85, 0.85);
+}
+
+#projects-list-container input[type="text"] {
+  font-family: "Red Hat Display", sans-serif;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+}
+
+.project-name-input {
+    width: 30%;
+    min-width: 100px;
+    margin-right: 10px;
+    padding: 5px 10px;
+}
+
+.project-name-input:last-of-type {
+    width: 70%;
+    min-width: 180px;
+    margin-right: 0;
+    padding: 5px 10px;
+}
+
+#projects-list-container input[type="text"]:focus {
+    border: 1px solid #555;
+    outline: none;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+.remove-btn {
+    margin-left: 10px;
+    padding: 5px 9px;
+    background-color: transparent;
+    font-size: 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.remove-btn:hover {
+    background-color: #eee;
+}
