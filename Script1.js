@@ -839,8 +839,5 @@ window.addEventListener("DOMContentLoaded", () => {
     loadSavedProjects();
 });
 
-const startTimeDate = parseTime(timer.startTime);
-const endTimeDate = parseTime(timer.endTime);
-
 const formattedStartTime = startTimeDate ? formatTimeWithAmPm(startTimeDate) : "Invalid Time";
 const formattedEndTime = endTimeDate ? formatTimeWithAmPm(endTimeDate) : "Invalid Time";
