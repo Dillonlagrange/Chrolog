@@ -1,6 +1,6 @@
  body {
   font-family: "Red Hat Display", sans-serif;
-  background: linear-gradient( 135deg, #ffffff, #ddd, #ffffff, #ddd );
+  background: linear-gradient( to right, #ffffff, #ddd, #ffffff, #ddd );
     min-height: 100vh;
   padding: 30px;
 }
