@@ -34,10 +34,8 @@ if (projectsContainer) {
 
 
 const totalTimeTodayDisplay = document.getElementById("totalTimeTodayDisplay");
-// Check if totalTimeTodayDisplay element exists
 if (!totalTimeTodayDisplay) {
     console.error("Element with ID 'totalTimeTodayDisplay' not found.");
-    // You might want to create it or handle this error appropriately
 }
 
 
@@ -94,6 +92,23 @@ function parseTime(timeStr) {
     return null; // Could not parse
 }
 
+// NEW: Parses HH:MM:SS or MM:SS string to total seconds
+function parseHmsToSeconds(hmsString) {
+    const parts = hmsString.split(':').map(Number);
+    let seconds = 0;
+    if (parts.length === 3) { // HH:MM:SS
+        seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+    } else if (parts.length === 2) { // MM:SS
+        seconds = parts[0] * 60 + parts[1];
+    }
+    // Handle cases where input might just be seconds (e.g., "30")
+    // or if a part is NaN (e.g., from an invalid input like "abc")
+    if (parts.length === 1 && !isNaN(parts[0])) {
+        seconds = parts[0];
+    }
+    return seconds;
+}
+
 // Function to calculate and update total time display for today
 function updateTotalTimeTodayDisplay() {
     let totalElapsedSeconds = 0;
@@ -131,9 +146,15 @@ function createProjectRow(savedData = {}) {
     startTimeInput.className = "time-display-output";
     startTimeInput.textContent = savedData.startTime ? formatTimeWithAmPm(parseTime(savedData.startTime)) : "00:00 AM";
 
-    const timerDisplay = document.createElement("span");
+    const timerDisplay = document.createElement("input");
+    timerDisplay.type = "text";
     timerDisplay.className = "timer-display";
-    timerDisplay.textContent = "00:00:00"; // Placeholder
+    timerDisplay.placeholder = "00:00:00"; 
+    timerDisplay.readOnly = true;
+
+    timerDisplay.value = savedData.accumulatedSeconds > 0
+        ? formatTime(savedData.accumulatedSeconds)
+        : ""; // If 0, start blank to show placeholder
 
     const endTimeInput = document.createElement("span");
     endTimeInput.className = "time-display-output";
@@ -144,23 +165,47 @@ function createProjectRow(savedData = {}) {
     deleteBtn.classList.add("delete-timer-btn");
 
     deleteBtn.onclick = () => {
-        // FIX: Declare index here to ensure correct scope
-        const index = rows.findIndex(r => r.row === row);
-        if (index !== -1) { // Ensure the row exists in the array
-            if (rowObject.timerInterval) {
-                rowObject.stopTimer(false); // Stop without cascading for deletion
-            }
-            rows.splice(index, 1); // Remove from the global 'rows' array
-            row.remove(); // Remove from DOM
-            saveTodayTimers(); // Updates localStorage after deletion
+    const index = rows.findIndex(r => r.row === row);
+    if (index !== -1) {
+        if (rowObject.timerInterval) {
+            rowObject.stopTimer(false); // Stop timer if running
         }
-        // REMOVED: Duplicated splice logic and incorrect index declaration
-    };
+
+        // 1. Capture identifying info
+        const projectName = projectInput.value;
+        const startTimeText = startTimeInput.textContent;
+        const todayKey = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD
+
+        // 2. Remove from 'rows' and DOM
+        rows.splice(index, 1);
+        row.remove();
+        saveTodayTimers();
+
+        // 3. Remove from daily history (e.g., "2025-06-16")
+        let dailyHistory = JSON.parse(localStorage.getItem(todayKey) || "[]");
+
+        dailyHistory = dailyHistory.filter(entry => {
+    return entry.projectName !== projectName;
+});
+
+
+        localStorage.setItem(todayKey, JSON.stringify(dailyHistory));
+
+        // 4. Update history UI if applicable
+        if (typeof loadHistoryTabs === "function") {
+            loadHistoryTabs(); // Refresh the entire history
+        }
+    }
+};
+
 
     let timerInterval = null;
     let currentStartTime = null;
     let accumulatedSeconds = savedData.accumulatedSeconds || 0;
     let isRunning = savedData.isRunning || false;
+    let originalTimerDisplayValue = "00:00:00"
+    let isEditing = false;
+    let isSavingProcessing = false;
 
     const toggleButton = document.createElement("button");
     toggleButton.textContent = "Start";
@@ -172,16 +217,14 @@ function createProjectRow(savedData = {}) {
             totalSeconds += Math.floor((Date.now() - currentStartTime) / 1000);
         }
         // CORRECT: Use .textContent for span
-        timerDisplay.textContent = formatTime(totalSeconds);
+        timerDisplay.value = totalSeconds === 0 ? "" : formatTime(totalSeconds);
     }
 
     function updateEndTime() {
-        // FIX: Read from .textContent
-        const currentStartTimeText = startTimeInput.textContent;
+        const currentStartTimeText = startTimeInput.textContent; // Reads from span
 
-        // FIX: Check for the placeholder string, not just an empty string for .value
         if (currentStartTimeText === "00:00 AM") {
-            endTimeInput.textContent = "00:00 AM"; // Set placeholder for end time
+            endTimeInput.textContent = "00:00 AM"; // Writes to span
             return;
         }
 
@@ -190,17 +233,15 @@ function createProjectRow(savedData = {}) {
             totalSecondsForEndTimeCalculation += Math.floor((Date.now() - currentStartTime) / 1000);
         }
 
-        // FIX: Parse the text content into a Date object
         const start = parseTime(currentStartTimeText);
-        if (!start) { // Handle case where parseTime returns null
+        if (!start) {
             endTimeInput.textContent = "00:00 AM";
             console.error("Failed to parse start time for end time calculation:", currentStartTimeText);
             return;
         }
 
         const end = new Date(start.getTime() + totalSecondsForEndTimeCalculation * 1000);
-        // FIX: Set .textContent with formatted AM/PM time
-        endTimeInput.textContent = formatTimeWithAmPm(end);
+        endTimeInput.textContent = formatTimeWithAmPm(end); // Writes to span
     }
 
     function stopTimer(triggerCascade = true) {
@@ -269,26 +310,113 @@ function createProjectRow(savedData = {}) {
         }
     };
 
-    const resetBtn = document.createElement("button");
-    resetBtn.textContent = "Reset";
-    resetBtn.classList.add("reset-timer-btn");
-    resetBtn.onclick = () => {
-        stopTimer(false);
-        accumulatedSeconds = 0;
-        currentStartTime = null;
-        isRunning = false;
-        timerDisplay.textContent = "00:00:00"; // CORRECT: .textContent
-        startTimeInput.textContent = "00:00 AM"; // CORRECT: .textContent
-        endTimeInput.textContent = "00:00 AM"; // CORRECT: .textContent
-        saveTodayTimers();
-    };
+    const editButton = document.createElement("button"); // Changed variable name from resetBtn
+    editButton.textContent = "Edit"; // Changed text to "Edit"
+    editButton.classList.add("edit-timer-btn"); // New class for styling
+
+    editButton.onclick = () => {
+    if (activeTimer !== null) {
+        alert("Please stop all timers before editing elapsed time.");
+        return;
+    }
+
+    if (!isEditing) {
+        // Enter Edit mode
+        originalTimerDisplayValue = timerDisplay.value;
+        isEditing = true;
+        timerDisplay.readOnly = false;
+        timerDisplay.classList.add("editing");
+        timerDisplay.focus();
+        timerDisplay.select();
+        editButton.textContent = "Save";
+    } else {
+        // Exit Edit mode and Save
+        const inputTime = timerDisplay.value;
+        const newTotalSeconds = parseHmsToSeconds(inputTime || "00:00:00");
+
+        if (isNaN(newTotalSeconds) || newTotalSeconds < 0) {
+            alert("Invalid time format. Please use HH:MM:SS or MM:SS.");
+            timerDisplay.value = originalTimerDisplayValue;
+        } else {
+            accumulatedSeconds = newTotalSeconds;
+            timerDisplay.value = accumulatedSeconds === 0 ? "" : formatTime(accumulatedSeconds);
+            if (startTimeInput.textContent === "00:00 AM") {
+                startTimeInput.textContent = formatTimeWithAmPm(new Date());
+            }
+            updateEndTime();
+
+            const index = rows.findIndex(r => r.row === row);
+            if (index !== -1) {
+                updateStartAndEndTimesFrom(index);
+            }
+            saveTodayTimers();
+        }
+
+        isEditing = false;
+        timerDisplay.readOnly = true;
+        timerDisplay.classList.remove("editing");
+        editButton.textContent = "Edit";
+        timerDisplay.blur(); // Visually indicate end of edit mode
+    }
+};
+
+
+    timerDisplay.addEventListener('focus', () => {
+    console.log(">>> timerDisplay FOCUSED!"); // Add this line
+    if (activeTimer !== null) {
+        timerDisplay.readOnly = true;
+        console.log("Blocked: Timer active, preventing focus edit."); // Add this line
+        return;
+    }
+    isEditing = true;
+    originalTimerDisplayValue = timerDisplay.value;
+    timerDisplay.readOnly = false;
+    timerDisplay.classList.add("editing");
+    if (accumulatedSeconds === 0) {
+        timerDisplay.value = "";
+    }
+    timerDisplay.select();
+    if (editButton.textContent === "Edit") { // This condition is important if button changes here
+        editButton.textContent = "Save"; // This is typically handled by editButton.onclick, but safety check
+    }
+    console.log("Focus handled. isEditing:", isEditing, " readOnly:", timerDisplay.readOnly, " classes:", timerDisplay.className, " button text:", editButton.textContent); // Add this line
+});
+
+    timerDisplay.addEventListener('blur', () => {
+    if (isEditing) { // <<< Check the flag before calling the handler
+        handleTimerEditBlur();
+    }
+});
+
+    timerDisplay.addEventListener('keydown', (e) => {
+        if (!isEditing) return;
+
+        // Allow numbers, colon, backspace, delete, arrow keys, Tab, Enter
+        if (
+            !(e.key >= '0' && e.key <= '9') && // Numbers 0-9
+            e.key !== ':' &&                  // Colon
+            e.key !== 'Backspace' &&          // Backspace
+            e.key !== 'Delete' &&             // Delete
+            e.key !== 'ArrowLeft' &&          // Arrow keys
+            e.key !== 'ArrowRight' &&
+            e.key !== 'Tab' &&                // Tab key
+            e.key !== 'Enter'                 // Enter key
+        ) {
+            e.preventDefault(); // Prevent any other character input
+        }
+
+        if (e.key === 'Enter') {
+            e.preventDefault(); // Prevent form submission
+            timerDisplay.blur(); // Trigger blur to save changes
+        }
+    });
 
     row.appendChild(projectInput);
     row.appendChild(toggleButton);
     row.appendChild(startTimeInput);
     row.appendChild(endTimeInput);
     row.appendChild(timerDisplay);
-    row.appendChild(resetBtn);
+    row.appendChild(editButton);
     row.appendChild(deleteBtn);
 
     projectsContainer.appendChild(row);
@@ -392,7 +520,7 @@ function saveTodayTimers() {
             startTime: r.startTimeInput.textContent,
             endTime: r.endTimeInput.textContent,
             // CORRECT: Read from .textContent
-            duration: r.timerDisplay.textContent,
+            duration: r.timerDisplay.value,
             accumulatedSeconds: currentElapsedSeconds,
             isRunning: r.isRunning,
             lastKnownTimestamp: r.isRunning ? Date.now() : null
