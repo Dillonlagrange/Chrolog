@@ -109,7 +109,9 @@ body {
 
 .right-column {
     flex: 1;
-    min-height: fit-content;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
 /* Right side (History) */
@@ -127,6 +129,73 @@ body {
     border-radius: 40px;
     border: 1px solid #f8f8f8;
     box-shadow: 0 2px 5px rgba(20, 20, 20, 0.1);
+}
+
+/* Project Total Time Window */
+
+#projectSearchContainer {
+    display: flex;
+    align-items: center; /* Vertically align items */
+    gap: 10px; /* Gap between the input, button, and total time display */
+    margin-top: 15px; /* Space from the H2 title */
+    flex-wrap: wrap; /* Allow items to wrap on smaller screens if needed */
+}
+
+#projectSearchInput {
+    /* Reuse styles from other text inputs or define specifically */
+    font-family: "Red Hat Display", sans-serif;
+    font-size: 16px;
+    padding: 5px 10px; /* Slightly more padding for a larger target */
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    flex: 2; /* Allow it to grow, but give it preference */
+    max-width: 250px; /* Ensure it's not too small on narrow screens */
+    margin: 10px;
+}
+
+#projectSearchInput:focus {
+    border: 1px solid #555;
+    outline: none;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+.search-project-btn {
+    /* Reuse button styles, potentially just 'start-button' */
+    /* If you want a different color, create a new class, e.g., 'search-button' */
+    /* For now, it will inherit from .start-button and potentially .stop-button */
+    font-family: "Red Hat Display", sans-serif;
+    padding: 5px 16px; /* Slightly more padding for a search button */
+    font-size: 16px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.4s ease;
+    background-color: #444; /* Default dark gray, or pick a new color */
+    color: white;
+    flex-shrink: 0; /* Prevent it from shrinking */
+}
+
+.search-project-btn:hover {
+    background-color: rgba(85, 85, 85, 0.85); /* Darker on hover */
+}
+
+.project-total-time-display {
+    font-family: "Red Hat Display", sans-serif;
+    font-weight: bold; /* Make it stand out */
+    font-size: 1.1em; /* Slightly larger text */
+    color: #444;
+    white-space: nowrap; /* Prevent time from wrapping */
+    padding: 8px 0; /* Align with input/button vertical padding */
+    flex: 1; /* Allow it to take up remaining space */
+    text-align: right; /* Align text to the right for numerical display */
+    min-width: 90px; /* Ensure it has enough space */
+    margin-right: 20px;
+}
+
+#projectSearchInput.error-border {
+    border-color: #f44336; /* A common red color for errors */
+    box-shadow: 0 0 5px rgba(244, 67, 54, 0.5); /* A subtle red glow */
+    transition: border-color 0.3s ease, box-shadow 0.3s ease; /* Smooth transition */
 }
 
 /* History Window */

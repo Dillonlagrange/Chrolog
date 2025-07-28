@@ -46,11 +46,8 @@ function formatTime(totalSeconds) {
 
     const pad = (num) => String(num).padStart(2, '0');
 
-    if (hours > 0) {
-        return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
-    } else {
-        return `${pad(minutes)}:${pad(seconds)}`;
-    }
+    // Always return HH:MM:SS format, even if hours are 0
+    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
 
 function formatTimeWithAmPm(date) {
@@ -107,6 +104,44 @@ function parseHmsToSeconds(hmsString) {
         seconds = parts[0];
     }
     return seconds;
+}
+
+function parseDateKey(dateKey) {
+    const parts = dateKey.split('-').map(Number);
+    // Month is 0-indexed in Date constructor, so subtract 1 from month part
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
+function parseTimeForSearch(timeStr, baseDate = new Date()) { // Default to current date if not provided
+    if (!timeStr) return null;
+
+    let hours, minutes;
+
+    // Try parsing "HH:MM AM/PM" format
+    const ampmMatch = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+    if (ampmMatch) {
+        // Corrected destructuring to avoid 'let' in array pattern
+        const [_, hStr, mStr, ampmStr] = ampmMatch;
+        hours = parseInt(hStr);
+        minutes = parseInt(mStr);
+        if (ampmStr.toUpperCase() === 'PM' && hours < 12) hours += 12;
+        if (ampmStr.toUpperCase() === 'AM' && hours === 12) hours = 0; // 12 AM (midnight) is 0 hours
+    } else {
+        // If not AM/PM, try "HH:MM" (24-hour) format
+        const parts = timeStr.split(':').map(Number);
+        if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+            hours = parts[0];
+            minutes = parts[1];
+        } else {
+            return null; // Could not parse
+        }
+    }
+
+    // Crucial: Create Date object using the provided baseDate's year, month, and day
+    // This correctly places the time on the specific historical date.
+    const d = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+    d.setHours(hours, minutes, 0, 0); // Set hours and minutes on that specific day
+    return d;
 }
 
 // Function to calculate and update total time display for today
@@ -274,6 +309,10 @@ function createProjectRow(savedData = {}) {
         // FIX: Pass .textContent for saving to history
         saveTimerToHistory(projectName, startTimeInput.textContent, endTimeInput.textContent);
         saveTodayTimers();
+
+        if (typeof loadHistoryTabs === "function") {
+            loadHistoryTabs();
+        }
     }
 
     toggleButton.onclick = () => {
@@ -691,6 +730,150 @@ addProjectNameBtn.addEventListener("click", () => {
     saveProjects();
 });
 
+// project Total Time search window
+
+function performProjectSearch() {
+    const searchInput = document.getElementById("projectSearchInput");
+    const totalTimeDisplay = document.getElementById("projectTotalTimeDisplay");
+
+    if (!searchInput || !totalTimeDisplay) {
+        console.error("Search UI elements not found. Cannot perform search.");
+        return;
+    }
+
+    const searchTerm = searchInput.value.trim();
+    searchInput.classList.remove("error-border");
+
+    if (searchTerm === "") {
+        totalTimeDisplay.textContent = "Total: 00:00:00";
+        searchInput.classList.add("error-border");
+        return;
+    }
+
+    let totalAccumulatedSeconds = 0;
+    const lowerCaseSearchTerm = searchTerm.toLowerCase();
+
+    console.log(`--- Starting Project Search for: "${searchTerm}" ---`); // Major debug log
+
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(key)) {
+            try {
+                const dailyHistory = JSON.parse(localStorage.getItem(key));
+                const historyDate = parseDateKey(key);
+                console.log(`Processing history for date: ${key} (Date Object: ${historyDate.toLocaleDateString()})`);
+
+                if (Array.isArray(dailyHistory)) {
+                    // NEW FILTERING LOGIC:
+                    // Create an object to store only the latest entry for the searched project name for THIS specific day
+                    const latestEntryForProjectOnThisDay = null; // Initialize to null or empty object
+
+                    // Instead of an object, directly find the last matching entry
+                    // This is more efficient for a single search term per day's history
+                    let foundMatchingEntry = null;
+                    dailyHistory.forEach(entry => {
+                        if (entry.projectName && entry.projectName.toLowerCase() === lowerCaseSearchTerm) {
+                            foundMatchingEntry = entry; // Keep overwriting with later entries, so this will be the latest
+                        }
+                    });
+
+                    // If a matching entry was found for this day, process only that one
+                    if (foundMatchingEntry) {
+                        const entry = foundMatchingEntry; // Renaming for consistency with previous code
+                        
+                        console.log(`  Processing latest entry for "${entry.projectName}" on ${key}: Start=${entry.startTime}, End=${entry.endTime}`);
+
+                        const startTime = parseTimeForSearch(entry.startTime, historyDate);
+                        let endTime = parseTimeForSearch(entry.endTime, historyDate);
+
+                        console.log(`    Parsed Start Time (Date object): ${startTime}`);
+                        console.log(`    Parsed End Time (Date object): ${endTime}`);
+
+                        if (startTime && endTime) {
+                            // If the end time is earlier than the start time, it implies it's on the next day.
+                            // This handles sessions crossing midnight.
+                            if (endTime.getTime() < startTime.getTime()) {
+                                endTime.setDate(endTime.getDate() + 1); // Add a day to endTime
+                                console.log(`      Adjusted end time (crossed midnight): ${endTime}`);
+                            }
+
+                            const durationMs = endTime.getTime() - startTime.getTime();
+                            const durationSeconds = Math.floor(durationMs / 1000);
+                            totalAccumulatedSeconds += durationSeconds;
+                            console.log(`      Duration for this entry: ${durationSeconds} seconds`);
+                            console.log(`      Current Total Accumulated Seconds: ${totalAccumulatedSeconds}`);
+                        } else {
+                            console.warn(`    Invalid or unparseable time strings for entry on ${key}: Start=${entry.startTime}, End=${entry.endTime}`);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error(`Error parsing localStorage key "${key}":`, e);
+            }
+        }
+    }
+
+    totalTimeDisplay.textContent = `Total: ${formatTime(totalAccumulatedSeconds)}`;
+    console.log(`--- Final total accumulated seconds for "${searchTerm}": ${totalAccumulatedSeconds} ---`);
+
+    if (totalAccumulatedSeconds === 0) {
+        searchInput.classList.add("error-border");
+        console.log(`No time found for project: "${searchTerm}"`);
+    }
+}
+
+// You need to ensure parseTime and formatTime functions are accessible in this scope.
+// Assuming they are global or defined earlier in your Script1.js
+
+function initializeProjectSearch() {
+    const projectSearchContainer = document.getElementById("projectSearchContainer");
+    if (!projectSearchContainer) {
+        console.error("Element with ID 'projectSearchContainer' not found. Cannot initialize search feature.");
+        return;
+    }
+
+    // Check if the search input already exists to prevent re-initialization
+    let searchInput = document.getElementById("projectSearchInput");
+    let searchButton = document.getElementById("searchProjectBtn");
+    let totalTimeDisplay = document.getElementById("projectTotalTimeDisplay");
+
+    if (!searchInput) { // Only create elements if they don't exist
+        searchInput = document.createElement("input");
+        searchInput.type = "text";
+        searchInput.placeholder = "Enter project name";
+        searchInput.id = "projectSearchInput";
+        searchInput.classList.add("project-search-input");
+        projectSearchContainer.appendChild(searchInput);
+
+        // NEW: Add an input event listener to clear the error border when user types
+        searchInput.addEventListener("input", () => {
+            searchInput.classList.remove("error-border");
+        });
+    }
+
+    if (!searchButton) { // Only create button if it doesn't exist
+        searchButton = document.createElement("button");
+        searchButton.textContent = "Search";
+        searchButton.id = "searchProjectBtn";
+        searchButton.classList.add("search-project-btn");
+        projectSearchContainer.appendChild(searchButton);
+
+        // This is the CRUCIAL CHANGE: Attach listener only if button was just created
+        // Or, more simply, just ensure this is the only place it's ever added.
+        searchButton.addEventListener("click", performProjectSearch);
+    }
+
+    if (!totalTimeDisplay) { // Only create display if it doesn't exist
+        totalTimeDisplay = document.createElement("span");
+        totalTimeDisplay.id = "projectTotalTimeDisplay";
+        totalTimeDisplay.classList.add("project-total-time-display");
+        totalTimeDisplay.textContent = "Total: 00:00:00";
+        projectSearchContainer.appendChild(totalTimeDisplay);
+    }
+    // No need to re-append if they already exist, just ensure they are there.
+}
+
 // history window
 
 const historyButtonsContainer = document.getElementById("history-buttons");
@@ -835,9 +1018,8 @@ window.addEventListener("DOMContentLoaded", () => {
         console.error("Element with ID 'history-tabs' not found. History display will not work.");
     }
 
+    initializeProjectSearch();
+
     loadHistoryTabs();
     loadSavedProjects();
 });
-
-const formattedStartTime = startTimeDate ? formatTimeWithAmPm(startTimeDate) : "Invalid Time";
-const formattedEndTime = endTimeDate ? formatTimeWithAmPm(endTimeDate) : "Invalid Time";
